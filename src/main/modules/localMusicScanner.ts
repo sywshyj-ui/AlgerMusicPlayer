@@ -8,6 +8,8 @@ import * as mm from 'music-metadata';
 import * as os from 'os';
 import * as path from 'path';
 
+import { fixEncoding } from './encodingFix';
+
 /** 支持的音频文件格式 */
 const SUPPORTED_AUDIO_FORMATS = ['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac'] as const;
 const METADATA_PARSE_CONCURRENCY = Math.min(8, Math.max(2, os.cpus().length));
@@ -284,9 +286,10 @@ async function parseMetadata(filePath: string): Promise<LocalMusicMeta> {
 
     return {
       filePath,
-      title: common.title || fallback.title,
-      artist: common.artist || fallback.artist,
-      album: common.album || fallback.album,
+      // 修复 GBK 标签被 latin1 误解码导致的乱码
+      title: fixEncoding(common.title) || fallback.title,
+      artist: fixEncoding(common.artist) || fallback.artist,
+      album: fixEncoding(common.album) || fallback.album,
       duration: format.duration ? Math.round(format.duration * 1000) : 0,
       coverPath: await extractCoverToFile(common.picture?.[0], filePath),
       lyrics: extractLyrics(common.lyrics),

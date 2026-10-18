@@ -210,9 +210,28 @@ const ensureLyricsLoaded = async (force = false) => {
       }
       if (!isCurrent()) return;
       if (!result.lrcArray.length) {
-        const { loadLrc } = await import('@/hooks/usePlayerHooks');
+        const { loadLrc, searchLocalLyric } = await import('@/hooks/usePlayerHooks');
+        const pm = playMusic.value;
+        // 本地音乐：无内嵌歌词时，尝试按歌名+歌手在线搜索歌词
+        if (pm?.playMusicUrl?.startsWith('local:///')) {
+          const artistName = (pm.ar || [])
+            .map((a) => a.name)
+            .filter(Boolean)
+            .join(' / ');
+          try {
+            if (!isCurrent()) return;
+            const searched = await searchLocalLyric(pm.name || '', artistName);
+            if (searched && searched.lrcArray.length) {
+              result = searched;
+            }
+          } catch (e) {
+            console.warn('本地音乐在线搜词失败，回退默认逻辑:', e);
+          }
+        }
         if (!isCurrent()) return;
-        result = await loadLrc(songId);
+        if (!result.lrcArray.length) {
+          result = await loadLrc(songId);
+        }
       }
     } catch (error) {
       console.error('加载歌词失败:', error);

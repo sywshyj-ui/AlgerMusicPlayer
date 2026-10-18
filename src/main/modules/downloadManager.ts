@@ -17,6 +17,7 @@ import type {
   DownloadTask,
   DownloadTaskState
 } from '../../shared/download';
+import { fixEncoding } from './encodingFix';
 import { getStore } from './config';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -421,7 +422,9 @@ class DownloadManager {
         const tags = await NodeID3.Promise.read(filePath);
         if (tags && tags.unsynchronisedLyrics) {
           const uslt = tags.unsynchronisedLyrics as any;
-          return uslt.text || (typeof uslt === 'string' ? uslt : null);
+          const raw = uslt.text || (typeof uslt === 'string' ? uslt : null);
+          // 修复 GBK 内嵌歌词被 latin1 误解码导致的乱码
+          return raw ? fixEncoding(raw) : null;
         }
         return null;
       }
@@ -435,7 +438,10 @@ class DownloadManager {
           const lyricsTag = tags.find(
             (t) => t.id.toUpperCase() === 'LYRICS' || t.id.toUpperCase() === 'UNSYNCEDLYRICS'
           );
-          if (lyricsTag) return lyricsTag.value as string;
+          if (lyricsTag) {
+            // 修复 GBK 内嵌歌词被 latin1 误解码导致的乱码
+            return fixEncoding(lyricsTag.value as string);
+          }
         }
         return null;
       }

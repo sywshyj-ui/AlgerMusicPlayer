@@ -48,24 +48,6 @@
             <p>关注公众号获取最新版本与更新信息</p>
           </div>
 
-          <div class="support-section">
-            <h4>支持项目</h4>
-            <p class="support-desc">您的支持是我们持续改进的动力</p>
-            <div class="payment-options">
-              <div class="payment-option">
-                <div class="payment-icon wechat">
-                  <img src="@/assets/wechat.png" alt="微信支付" />
-                </div>
-                <span>微信支付</span>
-              </div>
-              <div class="payment-option">
-                <div class="payment-icon alipay">
-                  <img src="@/assets/alipay.png" alt="支付宝" />
-                </div>
-                <span>支付宝</span>
-              </div>
-            </div>
-          </div>
 
           <div class="drawer-actions">
             <n-button secondary class="action-button" @click="markAsDonated">已支持</n-button>

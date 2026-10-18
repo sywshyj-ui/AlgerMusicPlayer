@@ -117,31 +117,6 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <button
-                @click="openDonateLink('wechat')"
-                class="flex flex-col items-center gap-2 p-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-              >
-                <div class="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
-                  <i class="ri-wechat-fill text-2xl text-white"></i>
-                </div>
-                <span class="text-sm font-medium text-green-700 dark:text-green-300">{{
-                  t('comp.donate.wechat')
-                }}</span>
-              </button>
-
-              <button
-                @click="openDonateLink('alipay')"
-                class="flex flex-col items-center gap-2 p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-              >
-                <div class="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
-                  <i class="ri-alipay-fill text-2xl text-white"></i>
-                </div>
-                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">{{
-                  t('comp.donate.alipay')
-                }}</span>
-              </button>
-            </div>
           </div>
 
           <div class="px-6 pb-8">
@@ -163,51 +138,6 @@
       </div>
     </Transition>
 
-    <Transition name="qrcode-modal">
-      <div
-        v-if="showQRCode"
-        class="fixed inset-0 z-[9999999] flex items-center justify-center bg-black/70 backdrop-blur-md"
-        @click.self="closeQRCode"
-      >
-        <div
-          class="w-full max-w-sm mx-4 bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-2xl"
-        >
-          <div
-            class="h-2"
-            :class="
-              qrcodeType === 'wechat'
-                ? 'bg-gradient-to-r from-green-400 to-green-600'
-                : 'bg-gradient-to-r from-blue-400 to-blue-600'
-            "
-          ></div>
-
-          <div class="flex items-center justify-between px-6 py-4">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-              {{ qrcodeType === 'wechat' ? t('comp.donate.wechatQR') : t('comp.donate.alipayQR') }}
-            </h3>
-            <button
-              @click="closeQRCode"
-              class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <i class="ri-close-line text-xl"></i>
-            </button>
-          </div>
-
-          <div class="px-6 pb-6">
-            <div class="bg-white p-4 rounded-2xl">
-              <img
-                :src="qrcodeType === 'wechat' ? wechatQRCode : alipayQRCode"
-                :alt="qrcodeType === 'wechat' ? 'WeChat QR Code' : 'Alipay QR Code'"
-                class="w-full rounded-xl"
-              />
-            </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 text-center mt-4">
-              {{ t('comp.donate.scanTip') }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </Teleport>
 </template>
 
@@ -215,8 +145,6 @@
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import alipayQRCode from '@/assets/alipay.png';
-import wechatQRCode from '@/assets/wechat.png';
 import { isElectron, isLyricWindow } from '@/utils';
 
 import config from '../../../../package.json';
@@ -228,8 +156,6 @@ const DONATION_SHOWN_VERSION_KEY = 'donation_shown_version';
 
 const showDisclaimer = ref(false);
 const showDonate = ref(false);
-const showQRCode = ref(false);
-const qrcodeType = ref<'wechat' | 'alipay'>('wechat');
 const isTransitioning = ref(false);
 
 const shouldShowDisclaimer = () => {
@@ -263,17 +189,6 @@ const handleDisagree = () => {
     window.close();
   }
   isTransitioning.value = false;
-};
-
-const openDonateLink = (type: 'wechat' | 'alipay') => {
-  if (isTransitioning.value) return;
-
-  qrcodeType.value = type;
-  showQRCode.value = true;
-};
-
-const closeQRCode = () => {
-  showQRCode.value = false;
 };
 
 const handleEnterApp = () => {

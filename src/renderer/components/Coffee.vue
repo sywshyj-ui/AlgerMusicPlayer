@@ -13,31 +13,6 @@
       </template>
 
       <div class="p-6 rounded-lg shadow-lg bg-light dark:bg-gray-800">
-        <div class="flex gap-10">
-          <div class="flex flex-col items-center gap-2">
-            <n-image
-              :src="alipayQR"
-              :alt="t('comp.coffee.alipayQR')"
-              class="w-32 h-32 rounded-lg cursor-none"
-              preview-disabled
-            />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{{
-              t('comp.coffee.alipay')
-            }}</span>
-          </div>
-          <div class="flex flex-col items-center gap-2">
-            <n-image
-              :src="wechatQR"
-              :alt="t('comp.coffee.wechatQR')"
-              class="w-32 h-32 rounded-lg cursor-none"
-              preview-disabled
-            />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{{
-              t('comp.coffee.wechat')
-            }}</span>
-          </div>
-        </div>
-
         <div class="mt-4">
           <p
             class="text-sm text-gray-700 dark:text-gray-200 text-center cursor-pointer hover:text-green-500"
@@ -61,11 +36,8 @@
 </template>
 
 <script setup>
-import { NButton, NImage, NPopover, useMessage } from 'naive-ui';
+import { NButton, NPopover, useMessage } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
-
-import alipay from '@/assets/alipay.png';
-import wechat from '@/assets/wechat.png';
 
 const { t } = useI18n();
 
@@ -79,14 +51,4 @@ const toDonateList = () => {
   window.open('http://donate.alger.fun/download', '_blank');
 };
 
-defineProps({
-  alipayQR: {
-    type: String,
-    default: alipay
-  },
-  wechatQR: {
-    type: String,
-    default: wechat
-  }
-});
 </script>

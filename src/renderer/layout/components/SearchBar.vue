@@ -200,7 +200,7 @@
     </n-popover>
 
     <!-- GitHub -->
-    <coffee :alipay-q-r="alipay" :wechat-q-r="wechat">
+    <coffee>
       <button class="action-btn" @click="toGithub">
         <i class="ri-github-fill" />
       </button>
@@ -217,8 +217,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { getSearchKeyword } from '@/api/home';
 import { getUserDetail } from '@/api/login';
 import { getSearchSuggestions } from '@/api/search';
-import alipay from '@/assets/alipay.png';
-import wechat from '@/assets/wechat.png';
 import Coffee from '@/components/Coffee.vue';
 import { SEARCH_TYPES, USER_SET_OPTIONS } from '@/const/bar-const';
 import { useZoom } from '@/hooks/useZoom';

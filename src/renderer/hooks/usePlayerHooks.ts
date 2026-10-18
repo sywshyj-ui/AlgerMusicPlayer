@@ -3,6 +3,7 @@ import { createDiscreteApi } from 'naive-ui';
 
 import i18n from '@/../i18n/renderer';
 import { getMusicLrc, getMusicUrl, getParsingMusicUrl } from '@/api/music';
+import { getSearch } from '@/api/search';
 import { playbackRequestManager } from '@/services/playbackRequestManager';
 import { SongSourceConfigManager } from '@/services/SongSourceConfigManager';
 import type { ILyric, ILyricText, IWordData, SongResult } from '@/types/music';
@@ -261,6 +262,82 @@ const parseLyrics = (lyricsString: string): { lyrics: ILyricText[]; times: numbe
 };
 
 /**
+ * 将网易云歌词数据（含逐字 yrc / 原文 lrc / 翻译 tlyric）统一转为歌词结果
+ * @param lyricData 原始歌词对象（getMusicLrc 返回 res.data）
+ * @returns 歌词数组 + 时间数组 + 是否逐字
+ */
+const buildLyricResult = async (
+  lyricData: any
+): Promise<{ lrcArray: ILyricText[]; lrcTimeArray: number[]; hasWordByWord: boolean }> => {
+  const data = lyricData ?? {};
+  const { lyrics, times } = parseLyrics(data?.yrc?.lyric || data?.lrc?.lyric);
+
+  // 检查是否有逐字歌词
+  let hasWordByWord = false;
+  for (const lyric of lyrics) {
+    if (lyric.hasWordByWord) {
+      hasWordByWord = true;
+      break;
+    }
+  }
+
+  if (data.tlyric && data.tlyric.lyric) {
+    const { lyrics: tLyrics } = parseLyrics(data.tlyric.lyric);
+
+    // 按索引顺序一一对应翻译歌词
+    if (tLyrics.length === lyrics.length) {
+      // 数量相同，直接按索引对应
+      lyrics.forEach((item, index) => {
+        item.trText = item.text && tLyrics[index] ? tLyrics[index].text : '';
+      });
+    } else {
+      // 数量不同，构建时间戳映射并尝试匹配
+      const tLyricMap = new Map<number, string>();
+      tLyrics.forEach((lyric) => {
+        if (lyric.text && lyric.startTime !== undefined) {
+          const timeInSeconds = lyric.startTime / 1000;
+          tLyricMap.set(timeInSeconds, lyric.text);
+        }
+      });
+
+      // 为每句歌词查找最接近的翻译
+      lyrics.forEach((item, index) => {
+        if (!item.text) {
+          item.trText = '';
+          return;
+        }
+
+        const currentTime = times[index];
+        let closestTime = -1;
+        let minDiff = 2.0; // 最大允许差异2秒
+
+        // 查找最接近的时间戳
+        for (const [tTime] of tLyricMap.entries()) {
+          const diff = Math.abs(tTime - currentTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestTime = tTime;
+          }
+        }
+
+        item.trText = closestTime !== -1 ? tLyricMap.get(closestTime) || '' : '';
+      });
+    }
+  } else {
+    // 没有翻译歌词，清空 trText
+    lyrics.forEach((item) => {
+      item.trText = '';
+    });
+  }
+
+  return {
+    lrcTimeArray: times,
+    lrcArray: lyrics,
+    hasWordByWord
+  };
+};
+
+/**
  * 加载歌词（独立函数）
  */
 export const loadLrc = async (id: string | number): Promise<ILyric> => {
@@ -287,72 +364,7 @@ export const loadLrc = async (id: string | number): Promise<ILyric> => {
       }
     }
 
-    const data = lyricData ?? {};
-    const { lyrics, times } = parseLyrics(data?.yrc?.lyric || data?.lrc?.lyric);
-
-    // 检查是否有逐字歌词
-    let hasWordByWord = false;
-    for (const lyric of lyrics) {
-      if (lyric.hasWordByWord) {
-        hasWordByWord = true;
-        break;
-      }
-    }
-
-    if (data.tlyric && data.tlyric.lyric) {
-      const { lyrics: tLyrics } = parseLyrics(data.tlyric.lyric);
-
-      // 按索引顺序一一对应翻译歌词
-      if (tLyrics.length === lyrics.length) {
-        // 数量相同，直接按索引对应
-        lyrics.forEach((item, index) => {
-          item.trText = item.text && tLyrics[index] ? tLyrics[index].text : '';
-        });
-      } else {
-        // 数量不同，构建时间戳映射并尝试匹配
-        const tLyricMap = new Map<number, string>();
-        tLyrics.forEach((lyric) => {
-          if (lyric.text && lyric.startTime !== undefined) {
-            const timeInSeconds = lyric.startTime / 1000;
-            tLyricMap.set(timeInSeconds, lyric.text);
-          }
-        });
-
-        // 为每句歌词查找最接近的翻译
-        lyrics.forEach((item, index) => {
-          if (!item.text) {
-            item.trText = '';
-            return;
-          }
-
-          const currentTime = times[index];
-          let closestTime = -1;
-          let minDiff = 2.0; // 最大允许差异2秒
-
-          // 查找最接近的时间戳
-          for (const [tTime] of tLyricMap.entries()) {
-            const diff = Math.abs(tTime - currentTime);
-            if (diff < minDiff) {
-              minDiff = diff;
-              closestTime = tTime;
-            }
-          }
-
-          item.trText = closestTime !== -1 ? tLyricMap.get(closestTime) || '' : '';
-        });
-      }
-    } else {
-      // 没有翻译歌词，清空 trText
-      lyrics.forEach((item) => {
-        item.trText = '';
-      });
-    }
-
-    return {
-      lrcTimeArray: times,
-      lrcArray: lyrics,
-      hasWordByWord
-    };
+    return await buildLyricResult(lyricData);
   } catch (err) {
     console.error('Error loading lyrics:', err);
     return {
@@ -360,6 +372,104 @@ export const loadLrc = async (id: string | number): Promise<ILyric> => {
       lrcArray: [],
       hasWordByWord: false
     };
+  }
+};
+
+// ─── 本地音乐在线搜索歌词 ────────────────────────────────────────────────
+
+type LocalLyricResult = {
+  lrcArray: ILyricText[];
+  lrcTimeArray: number[];
+  hasWordByWord: boolean;
+};
+
+// 会话内缓存，避免同一首歌反复联网搜索
+const localLyricMemoryCache = new Map<string, LocalLyricResult | null>();
+
+// 跨重启持久缓存（localStorage，体积很小：歌名+歌手+歌词数组）
+const LOCAL_LYRIC_STORAGE_KEY = 'alger_local_lyric_cache_v1';
+
+const loadLocalLyricStorage = (): Record<string, any> => {
+  try {
+    const raw = localStorage.getItem(LOCAL_LYRIC_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveLocalLyricStorage = (cache: Record<string, any>) => {
+  try {
+    localStorage.setItem(LOCAL_LYRIC_STORAGE_KEY, JSON.stringify(cache));
+  } catch {
+    // 忽略写入失败（如隐私模式 / 配额）
+  }
+};
+
+// 归一化歌名：转小写、去掉空格与常见标点，便于模糊匹配
+const normalizeName = (s: string): string =>
+  (s || '')
+    .toLowerCase()
+    .replace(
+      /[\s\-_()（）【】\[\]'`~!@#$%^&*+=|\\,，。、?？!！:：;；"'”“·]/g,
+      ''
+    );
+
+/**
+ * 本地音乐在线搜索歌词：按「歌名 + 歌手」在网易云搜索，取最匹配歌曲的歌词
+ * 适用于本地文件没有内嵌歌词、但歌名/歌手信息完整的情况
+ * @param name 歌名
+ * @param artist 歌手（多个用 / 连接或单个均可）
+ * @returns 歌词结果（含 lrcArray / lrcTimeArray / hasWordByWord），未搜到返回 null
+ */
+export const searchLocalLyric = async (
+  name: string,
+  artist: string
+): Promise<{ lrcArray: ILyricText[]; lrcTimeArray: number[]; hasWordByWord: boolean } | null> => {
+  if (!name || !name.trim()) return null;
+  const cacheKey = `${name}__${artist || ''}`;
+
+  if (localLyricMemoryCache.has(cacheKey)) return localLyricMemoryCache.get(cacheKey) ?? null;
+
+  // 持久缓存命中
+  const storage = loadLocalLyricStorage();
+  if (storage[cacheKey]) {
+    localLyricMemoryCache.set(cacheKey, storage[cacheKey]);
+    return storage[cacheKey];
+  }
+
+  try {
+    const keywords = [name, artist].filter(Boolean).join(' ').trim();
+    const res = await getSearch({ keywords, type: 1, limit: 10 });
+    const songs = res?.data?.result?.songs;
+    if (!Array.isArray(songs) || songs.length === 0) {
+      localLyricMemoryCache.set(cacheKey, null);
+      return null;
+    }
+
+    // 优先选歌名最匹配的；否则取第一个结果
+    const target = normalizeName(name);
+    const best =
+      songs.find((s: any) => {
+        const n = normalizeName(s.name || '');
+        return n && (n.includes(target) || target.includes(n));
+      }) ?? songs[0];
+
+    const { data } = await getMusicLrc(Number(best.id));
+    const result = await buildLyricResult(data);
+    if (!result || result.lrcArray.length === 0) {
+      localLyricMemoryCache.set(cacheKey, null);
+      return null;
+    }
+
+    // 写入会话缓存 + 持久缓存
+    localLyricMemoryCache.set(cacheKey, result);
+    storage[cacheKey] = result;
+    saveLocalLyricStorage(storage);
+    return result;
+  } catch (e) {
+    console.error('本地音乐在线搜词失败:', e);
+    return null;
   }
 };
 
