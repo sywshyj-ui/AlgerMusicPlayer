@@ -47,7 +47,6 @@ import { initializeDownloadManager, setDownloadManagerWindow } from './modules/d
 import { initializeFileManager } from './modules/fileManager';
 import { initializeFonts } from './modules/fonts';
 import { initializeLocalMusicScanner } from './modules/localMusicScanner';
-import { initializeLoginWindow } from './modules/loginWindow';
 import { initLxMusicHttp } from './modules/lxMusicHttp';
 import { initializeMpris, updateMprisCurrentSong, updateMprisPlayState } from './modules/mpris';
 import { initializeOtherApi } from './modules/otherApi';
@@ -90,8 +89,6 @@ function initialize(configStore: any) {
   initializeWindowManager();
   // 初始化字体管理
   initializeFonts();
-  // 初始化登录窗口
-  initializeLoginWindow();
   // 初始化本地音乐扫描模块
   initializeLocalMusicScanner();
 

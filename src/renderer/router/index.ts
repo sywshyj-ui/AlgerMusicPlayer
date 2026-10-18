@@ -6,13 +6,6 @@ import homeRouter from '@/router/home';
 import otherRouter from '@/router/other';
 import { useSettingsStore } from '@/store/modules/settings';
 
-import { useUserStore } from '../store/modules/user';
-
-function getUserId(): string | null {
-  const userStore = useUserStore();
-  return userStore.user?.userId?.toString() || null;
-}
-
 // 由于 Vue Router 守卫在创建前不能直接使用组合式 API
 // 我们创建一个辅助函数来获取 store 实例
 let _settingsStore: ReturnType<typeof useSettingsStore> | null = null;
@@ -23,23 +16,11 @@ const getSettingsStore = () => {
   return _settingsStore;
 };
 
-const loginRouter = {
-  path: '/login',
-  name: 'login',
-  meta: {
-    keepAlive: true,
-    title: '登录',
-    icon: 'icon-Home',
-    back: true
-  },
-  component: () => import('@/views/login/index.vue')
-};
-
 const routes = [
   {
     path: '/',
     component: AppLayout,
-    children: [...homeRouter, loginRouter, ...otherRouter]
+    children: [...homeRouter, ...otherRouter]
   },
   {
     path: '/lyric',
@@ -80,11 +61,7 @@ router.beforeEach((to, _, next) => {
 // 添加全局后置钩子，记录页面访问
 router.afterEach((to) => {
   const pageName = to.name?.toString() || to.path;
-  // 使用setTimeout避免阻塞路由导航
-  setTimeout(() => {
-    const userId = getUserId();
-    console.log('pageName', pageName, userId);
-  }, 100);
+  console.log('pageName', pageName);
 });
 
 export default router;

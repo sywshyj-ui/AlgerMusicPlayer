@@ -1,27 +1,5 @@
 const otherRouter = [
   {
-    path: '/user/follows',
-    name: 'userFollows',
-    meta: {
-      title: '关注列表',
-      keepAlive: false,
-      showInMenu: false,
-      back: true
-    },
-    component: () => import('@/views/user/follows.vue')
-  },
-  {
-    path: '/user/followers',
-    name: 'userFollowers',
-    meta: {
-      title: '粉丝列表',
-      keepAlive: false,
-      showInMenu: false,
-      back: true
-    },
-    component: () => import('@/views/user/followers.vue')
-  },
-  {
     path: '/downloads',
     name: 'downloads',
     meta: {
@@ -32,17 +10,6 @@ const otherRouter = [
       icon: 'ri-download-cloud-2-line'
     },
     component: () => import('@/views/download/DownloadPage.vue')
-  },
-  {
-    path: '/user/detail/:uid',
-    name: 'userDetail',
-    meta: {
-      title: '用户详情',
-      keepAlive: false,
-      showInMenu: false,
-      back: true
-    },
-    component: () => import('@/views/user/detail.vue')
   },
   {
     path: '/artist/detail/:id',

@@ -123,34 +123,15 @@
       }}
     </n-tooltip>
 
-    <!-- 用户 -->
+    <!-- 设置菜单 -->
     <n-popover trigger="hover" placement="bottom-end" :show-arrow="false" raw>
       <template #trigger>
-        <div class="user-btn">
-          <n-avatar
-            v-if="userStore.user"
-            circle
-            :size="26"
-            :src="getImgUrl(userStore.user.avatarUrl)"
-            class="cursor-pointer"
-            @click="selectItem('user')"
-          />
-          <span v-else class="login-label" @click="toLogin">{{ t('comp.searchBar.login') }}</span>
-        </div>
+        <button class="action-btn" @click="selectItem('set')">
+          <i class="ri-settings-3-line" />
+        </button>
       </template>
       <div class="user-menu">
-        <div v-if="userStore.user" class="user-menu-top" @click="selectItem('user')">
-          <n-avatar circle :size="30" :src="getImgUrl(userStore.user?.avatarUrl)" />
-          <span class="user-name">{{ userStore.user?.nickname }}</span>
-        </div>
-        <div v-if="userStore.user" class="menu-sep" />
         <div class="menu-list">
-          <div v-if="!userStore.user" class="menu-row" @click="toLogin">
-            <i class="ri-login-box-line" /><span>{{ t('comp.searchBar.toLogin') }}</span>
-          </div>
-          <div v-if="userStore.user" class="menu-row" @click="selectItem('logout')">
-            <i class="ri-logout-box-r-line" /><span>{{ t('comp.searchBar.logout') }}</span>
-          </div>
           <div class="menu-row" @click="selectItem('set')">
             <i class="ri-settings-3-line" /><span>{{ t('comp.searchBar.set') }}</span>
           </div>
@@ -200,33 +181,28 @@
     </n-popover>
 
     <!-- GitHub -->
-    <coffee>
-      <button class="action-btn" @click="toGithub">
-        <i class="ri-github-fill" />
-      </button>
-    </coffee>
+    <button class="action-btn" @click="toGithub">
+      <i class="ri-github-fill" />
+    </button>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { useDebounceFn } from '@vueuse/core';
-import { computed, onMounted, ref, watch, watchEffect } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
 import { getSearchKeyword } from '@/api/home';
-import { getUserDetail } from '@/api/login';
 import { getSearchSuggestions } from '@/api/search';
-import Coffee from '@/components/Coffee.vue';
-import { SEARCH_TYPES, USER_SET_OPTIONS } from '@/const/bar-const';
+import { SEARCH_TYPES } from '@/const/bar-const';
 import { useZoom } from '@/hooks/useZoom';
 import { useDownloadStore } from '@/store/modules/download';
 import { useIntelligenceModeStore } from '@/store/modules/intelligenceMode';
 import { useNavTitleStore } from '@/store/modules/navTitle';
 import { useSearchStore } from '@/store/modules/search';
 import { useSettingsStore } from '@/store/modules/settings';
-import { useUserStore } from '@/store/modules/user';
-import { getImgUrl, isElectron } from '@/utils';
+import { isElectron } from '@/utils';
 import { checkUpdate, UpdateResult } from '@/utils/update';
 
 import config from '../../../../package.json';
@@ -236,8 +212,6 @@ const route = useRoute();
 const navTitleStore = useNavTitleStore();
 const searchStore = useSearchStore();
 const settingsStore = useSettingsStore();
-const userStore = useUserStore();
-const userSetOptions = ref(USER_SET_OPTIONS);
 const { t, locale } = useI18n();
 
 const intelligenceModeStore = useIntelligenceModeStore();
@@ -254,7 +228,7 @@ const { zoomFactor, initZoomFactor, increaseZoom, decreaseZoom, resetZoom, isZoo
 
 // ── 心动模式 ─────────────────────────────────────────
 const isIntelligenceMode = computed(() => intelligenceModeStore.isIntelligenceMode);
-const showIntelligenceBtn = computed(() => userStore.user && userStore.loginType === 'cookie');
+const showIntelligenceBtn = ref(false);
 const toggleIntelligenceMode = async () => {
   if (isIntelligenceMode.value) {
     intelligenceModeStore.clearIntelligenceMode();
@@ -440,22 +414,8 @@ const loadHotSearch = async () => {
   hotSearchKeyword.value = data.data.showKeyword;
   hotSearchValue.value = data.data.realkeyword;
 };
-const loadPage = async () => {
-  if (!localStorage.getItem('token')) return;
-  const { data } = await getUserDetail();
-  userStore.user =
-    data.profile || userStore.user || JSON.parse(localStorage.getItem('user') || '{}');
-  localStorage.setItem('user', JSON.stringify(userStore.user));
-};
-loadPage();
-watchEffect(() => {
-  userSetOptions.value = userStore.user
-    ? USER_SET_OPTIONS
-    : USER_SET_OPTIONS.filter((i) => i.key !== 'logout');
-});
 
 const restartApp = () => window.electron.ipcRenderer.send('restart');
-const toLogin = () => router.push('/user');
 const toGithub = () => window.open('http://donate.alger.fun/download', '_blank');
 const toGithubRelease = () => {
   window.location.href = 'https://donate.alger.fun/download';
@@ -468,14 +428,8 @@ const isDark = computed({
 
 const selectItem = (key: string) => {
   switch (key) {
-    case 'logout':
-      userStore.handleLogout();
-      break;
     case 'set':
       router.push('/set');
-      break;
-    case 'user':
-      router.push('/user');
       break;
     case 'refresh':
       window.location.reload();
